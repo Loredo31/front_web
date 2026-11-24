@@ -4,18 +4,14 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-ARG VITE_API_URL
-ARG VITE_ID_DISTRIBUIDOR
-ENV VITE_API_URL=$VITE_API_URL
-ENV VITE_ID_DISTRIBUIDOR=$VITE_ID_DISTRIBUIDOR
 RUN npm run build
 
-# 2. Servidor Nginx ultra rapido con soporte SPA (React Router)
+# 2. Servidor Nginx con proxy inverso hacia el backend en Railway
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
-RUN printf 'server {\n    listen 80;\n    location / {\n        root /usr/share/nginx/html;\n        index index.html;\n        try_files $uri $uri/ /index.html;\n    }\n}\n' > /etc/nginx/conf.d/default.conf
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
+ENV BACKEND_HOST="proyecto-production-3aca5b05.up.railway.app"
 EXPOSE 80
 
-# Soporta tanto port 80 como el $PORT dinamico de Railway
-CMD ["/bin/sh", "-c", "sed -i -e 's/listen 80;/listen '${PORT:-80}';/g' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+CMD ["/bin/sh", "-c", "sed -e 's|${PORT}|'\"${PORT:-80}\"'|g' -e 's|${BACKEND_HOST}|'\"${BACKEND_HOST:-proyecto-production-3aca5b05.up.railway.app}\"'|g' /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
