@@ -1,0 +1,27 @@
+const moneda = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+
+export const formatoMoneda = (v) => (v === null || v === undefined || v === '' ? '—' : moneda.format(Number(v)));
+
+export function formatoFecha(iso, conHora = true) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString('es-MX', conHora
+    ? { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }
+    : { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+export const ultimos4 = (n) => (n ? String(n).slice(-4) : '••••');
+
+export const cuentaAgrupada = (n) => (n ? String(n).replace(/(.{4})(?=.)/g, '$1 ') : '');
+
+export const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+export const CURP_REGEX = /^[A-Z]{4}\d{6}[HM][A-Z]{2}[B-DF-HJ-NP-TV-Z]{3}[A-Z0-9]\d$/;
+export const RFC_REGEX = /^[A-Z&Ñ]{3,4}\d{6}[A-Z0-9]{3}$/;
+export const CORREO_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export const nuevoUuid = () => (crypto.randomUUID ? crypto.randomUUID()
+  : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  }));

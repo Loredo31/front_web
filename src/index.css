@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+/* Paleta inspirada en billeteras digitales: azul celeste como color principal y fondo gris claro.
+   Se redefine la escala "blue" para que todos los componentes la usen sin cambiar cada clase. */
+@theme {
+  --font-sans: "Nunito Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-blue-50: #e8f6fd;
+  --color-blue-100: #cdecfa;
+  --color-blue-200: #9bd9f5;
+  --color-blue-300: #66c6ef;
+  --color-blue-400: #33b2e9;
+  --color-blue-500: #009ee3;
+  --color-blue-600: #009ee3;
+  --color-blue-700: #0089c6;
+  --color-blue-800: #006fa3;
+  --color-blue-900: #00527a;
+  --color-fondo: #ededed;
+  --color-tinta: #1a1a1a;
+}
+
+body { background: var(--color-fondo); color: var(--color-tinta); }
+
+/* Tarjeta blanca con sombra suave (estilo de las tarjetas de la app). */
+.tarjeta { background: #fff; border-radius: 0.5rem; box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
+
+@keyframes aparecer { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.animar { animation: aparecer .18s ease-out; }
+
+@media print {
+  body * { visibility: hidden; }
+  .imprimible, .imprimible * { visibility: visible; }
+  .imprimible { position: absolute; inset: 0 auto auto 0; width: 100%; box-shadow: none !important; }
+  .no-imprimir { display: none !important; }
+}
