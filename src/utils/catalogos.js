@@ -1,3 +1,5 @@
+import { MUNICIPIOS } from './municipios';
+
 const titulo = (s) => s.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 export const SEXOS = ['MASCULINO', 'FEMENINO', 'OTRO'].map((v) => ({ valor: v, texto: titulo(v) }));
@@ -68,3 +70,23 @@ export const PAISES = aOpciones([
 ]);
 
 export const esMexico = (pais) => normalizar(pais) === 'MEXICO';
+
+// ---------------- Municipios (dependen del estado) ----------------
+
+/**
+ * Opciones de municipio para el estado elegido. Si el valor guardado no está en el catálogo
+ * (cliente registrado antes de usar la lista), se agrega para no perderlo.
+ */
+export function opcionesMunicipio(estado, actual) {
+  const lista = (MUNICIPIOS[estado] || []).map((m) => ({ valor: m, texto: m }));
+  if (actual && !lista.some((o) => normalizar(o.valor) === normalizar(actual))) lista.unshift({ valor: actual, texto: actual });
+  return lista;
+}
+
+/** Valor del municipio con el formato del catálogo (p. ej. "dolores hidalgo" -> nombre oficial). */
+export const municipioDeLista = (estado, valor) => valorDeLista(opcionesMunicipio(estado), valor);
+
+export const LIMITES = { nombre: 50, password: 50, calle: 150, colonia: 100, ocupacion: 100, empresa: 100 };
+
+/** Ingreso mensual: máximo 15 dígitos enteros y 2 decimales (lo que no cumpla se ignora al escribir). */
+export const filtrarIngreso = (v, anterior = '') => (/^\d{0,15}(\.\d{0,2})?$/.test(v) ? v : anterior);

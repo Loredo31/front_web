@@ -38,15 +38,18 @@ export class ApiError extends Error {
   }
 }
 
-/** Número de cuenta enviado como número JSON sin perder precisión (16 dígitos). */
+/** Número enviado como número JSON sin perder precisión (cuentas de 16 dígitos, ingreso de hasta 17). */
 export class NumeroCrudo {
-  constructor(valor) { this.valor = String(valor).replace(/\D/g, ''); }
+  constructor(valor) {
+    const limpio = String(valor).replace(/[^\d.]/g, '').replace(/\.$/, '');
+    this.valor = /^\d+(\.\d+)?$/.test(limpio) ? limpio : '0';
+  }
 }
 export const num = (v) => new NumeroCrudo(v);
 
 function serializar(body) {
   const json = JSON.stringify(body, (_k, v) => (v instanceof NumeroCrudo ? `__NUM__${v.valor}__` : v));
-  return json.replace(/"__NUM__(\d+)__"/g, '$1');
+  return json.replace(/"__NUM__(\d+(?:\.\d+)?)__"/g, '$1');
 }
 
 function normalizarError(status, body) {

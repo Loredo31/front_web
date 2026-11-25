@@ -145,7 +145,7 @@ export default function Login() {
           <form onSubmit={enCodigo ? (paso === 'codigo' ? verificarCodigo : confirmarCierreCorreo) : enviarCredenciales} className="space-y-3.5">
             <Campo label="Correo electrónico" type="email" autoComplete="username" required value={correo}
               disabled={paso !== 'credenciales'} onChange={(e) => setCorreo(e.target.value)} placeholder="tu@correo.com" />
-            <Campo label="Contraseña" type="password" autoComplete="current-password" required value={password}
+            <Campo label="Contraseña" type="password" autoComplete="current-password" required maxLength={50} value={password}
               disabled={paso !== 'credenciales'} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
 
             {enCodigo && (

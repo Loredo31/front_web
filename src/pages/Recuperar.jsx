@@ -80,11 +80,11 @@ export default function Recuperar() {
                 <button type="button" onClick={() => solicitar()} className="underline font-semibold cursor-pointer">Enviar otro</button>
               </span>
             </div>
-            <Campo label="Nueva contraseña" type="password" autoComplete="new-password" value={password}
+            <Campo label="Nueva contraseña" type="password" autoComplete="new-password" maxLength={50} value={password}
               onChange={(e) => setPassword(e.target.value)}
               ayuda={<span className={PASSWORD_REGEX.test(password) ? 'text-emerald-600' : 'text-slate-400'}>
                 Mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial.</span>} />
-            <Campo label="Confirmar contraseña" type="password" autoComplete="new-password" value={confirmacion}
+            <Campo label="Confirmar contraseña" type="password" autoComplete="new-password" maxLength={50} value={confirmacion}
               onChange={(e) => setConfirmacion(e.target.value)} />
             <Boton type="submit" cargando={cargando} className="w-full">Cambiar contraseña</Boton>
             <p className="text-[11px] text-slate-400 text-center">Al confirmar se cerrarán todas tus sesiones abiertas.</p>

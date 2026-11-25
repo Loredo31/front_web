@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { Alerta, Boton, Campo, Selector } from '../components/ui';
 import AuthLayout from '../layout/AuthLayout';
 import { clientesApi } from '../api/servicios';
-import { ESTADOS, ESTADOS_CIVILES, NACIONALIDADES, PAISES, SEXOS, esMexico } from '../utils/catalogos';
+import { num } from '../api/http';
+import { ESTADOS, ESTADOS_CIVILES, LIMITES, NACIONALIDADES, PAISES, SEXOS, esMexico, filtrarIngreso, opcionesMunicipio } from '../utils/catalogos';
 import { CORREO_REGEX, CURP_REGEX, PASSWORD_REGEX, RFC_REGEX, cuentaAgrupada } from '../utils/formato';
 
 const PASOS = ['Datos personales', 'Verificación de Identidad Fiscal', 'Domicilio y datos laborales'];
@@ -96,7 +97,7 @@ function armarPeticion(f) {
       calle: f.calle.trim(), numeroExterior: n(f.numeroExterior), numeroInterior: n(f.numeroInterior),
       colonia: f.colonia.trim(), municipio: f.municipio.trim(), estado: f.estado, codigoPostal: f.codigoPostal, pais: f.pais,
     },
-    informacionLaboral: { ocupacion: f.ocupacion.trim(), empresa: f.empresa.trim(), ingresoMensual: Number(f.ingresoMensual) },
+    informacionLaboral: { ocupacion: f.ocupacion.trim(), empresa: f.empresa.trim(), ingresoMensual: num(f.ingresoMensual) },
     password: f.password,
   };
 }
@@ -194,10 +195,10 @@ export default function Registro() {
       <form onSubmit={siguiente} className="space-y-3" noValidate>
         {paso === 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animar">
-            <Campo label="Nombre" value={f.nombre} onChange={set('nombre')} error={errores.nombre} />
-            <Campo label="Segundo nombre (opcional)" value={f.segundoNombre} onChange={set('segundoNombre')} error={errores.segundoNombre} />
-            <Campo label="Apellido paterno" value={f.apellidoPaterno} onChange={set('apellidoPaterno')} error={errores.apellidoPaterno} />
-            <Campo label="Apellido materno" value={f.apellidoMaterno} onChange={set('apellidoMaterno')} error={errores.apellidoMaterno} />
+            <Campo label="Nombre" maxLength={LIMITES.nombre} value={f.nombre} onChange={set('nombre')} error={errores.nombre} />
+            <Campo label="Segundo nombre (opcional)" maxLength={LIMITES.nombre} value={f.segundoNombre} onChange={set('segundoNombre')} error={errores.segundoNombre} />
+            <Campo label="Apellido paterno" maxLength={LIMITES.nombre} value={f.apellidoPaterno} onChange={set('apellidoPaterno')} error={errores.apellidoPaterno} />
+            <Campo label="Apellido materno" maxLength={LIMITES.nombre} value={f.apellidoMaterno} onChange={set('apellidoMaterno')} error={errores.apellidoMaterno} />
             <Campo label="Fecha de nacimiento" type="date" min={haceAnios(EDAD_MAXIMA + 1)} max={haceAnios(EDAD_MINIMA)} value={f.fechaNacimiento} onChange={set('fechaNacimiento')} error={errores.fechaNacimiento} />
             <Selector label="Sexo" opciones={SEXOS} value={f.sexo} onChange={set('sexo')} error={errores.sexo} />
             <Selector label="Estado civil" opciones={ESTADOS_CIVILES} value={f.estadoCivil} onChange={set('estadoCivil')} error={errores.estadoCivil} />
@@ -234,12 +235,15 @@ export default function Registro() {
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Domicilio</h4>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <Campo label="Calle" className="col-span-2" value={f.calle} onChange={set('calle')} error={errores.calle} />
+                <Campo label="Calle" className="col-span-2" maxLength={LIMITES.calle} value={f.calle} onChange={set('calle')} error={errores.calle} />
                 <Campo label="Núm. ext." inputMode="numeric" value={f.numeroExterior} onChange={set('numeroExterior', digitos(6))} error={errores.numeroExterior} />
                 <Campo label="Núm. int. (opcional)" inputMode="numeric" value={f.numeroInterior} onChange={set('numeroInterior', digitos(6))} error={errores.numeroInterior} />
-                <Campo label="Colonia" className="col-span-2" value={f.colonia} onChange={set('colonia')} error={errores.colonia} />
-                <Campo label="Municipio" className="col-span-2" value={f.municipio} onChange={set('municipio')} error={errores.municipio} />
-                <Selector label="Estado" className="col-span-2" opciones={ESTADOS} value={f.estado} onChange={set('estado')} error={errores.estado} />
+                <Campo label="Colonia" className="col-span-2" maxLength={LIMITES.colonia} value={f.colonia} onChange={set('colonia')} error={errores.colonia} />
+                <Selector label="Municipio" className="col-span-2" opciones={opcionesMunicipio(f.estado)} value={f.municipio} onChange={set('municipio')}
+                  error={errores.municipio} disabled={!f.estado}
+                  vacio={f.estado ? 'Selecciona…' : 'Primero elige el estado'} />
+                <Selector label="Estado" className="col-span-2" opciones={ESTADOS} value={f.estado} error={errores.estado}
+                  onChange={(e) => { const v = e.target.value; setF((p) => ({ ...p, estado: v, municipio: '' })); setErrores((p) => ({ ...p, estado: undefined })); }} />
                 <Campo label="C.P." inputMode="numeric" value={f.codigoPostal} onChange={set('codigoPostal', digitos(5))} error={errores.codigoPostal} />
                 <Selector label="País" opciones={PAISES} value={f.pais} onChange={set('pais')} error={errores.pais} />
               </div>
@@ -250,17 +254,19 @@ export default function Registro() {
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Información laboral</h4>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Campo label="Ocupación" value={f.ocupacion} onChange={set('ocupacion')} error={errores.ocupacion} />
-                <Campo label="Empresa" value={f.empresa} onChange={set('empresa')} error={errores.empresa} />
-                <Campo label="Ingreso mensual" type="number" min="0" step="0.01" value={f.ingresoMensual} onChange={set('ingresoMensual')} error={errores.ingresoMensual} />
+                <Campo label="Ocupación" maxLength={LIMITES.ocupacion} value={f.ocupacion} onChange={set('ocupacion')} error={errores.ocupacion} />
+                <Campo label="Empresa" maxLength={LIMITES.empresa} value={f.empresa} onChange={set('empresa')} error={errores.empresa} />
+                <Campo label="Ingreso mensual" inputMode="decimal" value={f.ingresoMensual} error={errores.ingresoMensual} placeholder="0.00"
+                  onChange={(e) => { const v = e.target.value; setF((p) => ({ ...p, ingresoMensual: filtrarIngreso(v, p.ingresoMensual) })); setErrores((p) => ({ ...p, ingresoMensual: undefined })); }}
+                  ayuda={<span className="text-slate-400">Máximo 15 dígitos y 2 decimales</span>} />
               </div>
             </div>
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Contraseña de acceso</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Campo label="Contraseña" type="password" autoComplete="new-password" value={f.password} onChange={set('password')} error={errores.password}
+                <Campo label="Contraseña" type="password" autoComplete="new-password" maxLength={LIMITES.password} value={f.password} onChange={set('password')} error={errores.password}
                   ayuda={<span className={PASSWORD_REGEX.test(f.password) ? 'text-emerald-600' : 'text-slate-400'}>8+ caracteres, mayúscula, minúscula, número y especial</span>} />
-                <Campo label="Confirmar contraseña" type="password" autoComplete="new-password" value={f.confirmacion} onChange={set('confirmacion')} error={errores.confirmacion} />
+                <Campo label="Confirmar contraseña" type="password" autoComplete="new-password" maxLength={LIMITES.password} value={f.confirmacion} onChange={set('confirmacion')} error={errores.confirmacion} />
               </div>
             </div>
             <div className={`bg-slate-50 border p-3 rounded-xl ${errores.acepto ? 'border-rose-300' : 'border-slate-200'}`}>

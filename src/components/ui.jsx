@@ -79,15 +79,15 @@ export function Campo({ label, error, ayuda, className = '', children, ...props 
   );
 }
 
-export function Selector({ label, error, opciones, className = '', ...props }) {
+export function Selector({ label, error, opciones, className = '', vacio = 'Selecciona…', ...props }) {
   return (
     <Campo label={label} error={error} className={className}>
       <select
         className={`w-full bg-slate-50 border rounded-lg p-2 text-sm text-slate-800 mt-1 outline-none
-          focus:ring-2 focus:ring-blue-100 focus:border-blue-400 ${error ? 'border-rose-300' : 'border-slate-200'}`}
+          focus:ring-2 focus:ring-blue-100 focus:border-blue-400 disabled:opacity-60 ${error ? 'border-rose-300' : 'border-slate-200'}`}
         {...props}
       >
-        <option value="">Selecciona…</option>
+        <option value="">{vacio}</option>
         {opciones.map((o) => (
           <option key={o.valor ?? o} value={o.valor ?? o}>{o.texto ?? o}</option>
         ))}
