@@ -6,7 +6,7 @@ import { Alerta, Boton, Campo, Cargando, Selector } from '../components/ui';
 import { ModalAutorizar } from '../components/Pin';
 import { Encabezado } from './Billetera';
 import {
-  ESTADOS, ESTADOS_CIVILES, LIMITES, PAISES, esMexico, filtrarIngreso, municipioDeLista, nombreEstado, opcionesMunicipio, textoEnum, valorDeLista,
+  ESTADOS, ESTADOS_CIVILES, LIMITES, PAISES, avisoIngreso, esMexico, filtrarIngreso, municipioDeLista, nombreEstado, opcionesMunicipio, textoEnum, valorDeLista,
 } from '../utils/catalogos';
 import { CORREO_REGEX, formatoFecha, formatoMoneda } from '../utils/formato';
 
@@ -174,7 +174,7 @@ export default function Perfil() {
           <div className="grid sm:grid-cols-3 gap-3">
             <Campo label="Ocupación" maxLength={LIMITES.ocupacion} value={form.ocupacion} onChange={set('ocupacion')} error={errores.ocupacion} />
             <Campo label="Empresa" maxLength={LIMITES.empresa} value={form.empresa} onChange={set('empresa')} error={errores.empresa} />
-            <Campo label="Ingreso mensual" inputMode="decimal" value={form.ingresoMensual} error={errores.ingresoMensual}
+            <Campo label="Ingreso mensual" inputMode="decimal" value={form.ingresoMensual} error={errores.ingresoMensual} aviso={avisoIngreso(form.ingresoMensual)}
               onChange={(e) => { const v = e.target.value; setForm((f) => ({ ...f, ingresoMensual: filtrarIngreso(v, f.ingresoMensual) })); setErrores((x) => ({ ...x, ingresoMensual: undefined })); }} />
           </div>
           <div className="flex justify-end gap-2">

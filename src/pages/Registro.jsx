@@ -4,7 +4,7 @@ import { Alerta, Boton, Campo, Selector } from '../components/ui';
 import AuthLayout from '../layout/AuthLayout';
 import { clientesApi } from '../api/servicios';
 import { num } from '../api/http';
-import { ESTADOS, ESTADOS_CIVILES, LIMITES, NACIONALIDADES, PAISES, SEXOS, esMexico, filtrarIngreso, opcionesMunicipio } from '../utils/catalogos';
+import { ESTADOS, ESTADOS_CIVILES, LIMITES, NACIONALIDADES, PAISES, SEXOS, avisoIngreso, esMexico, filtrarIngreso, opcionesMunicipio } from '../utils/catalogos';
 import { CORREO_REGEX, CURP_REGEX, PASSWORD_REGEX, RFC_REGEX, cuentaAgrupada } from '../utils/formato';
 
 const PASOS = ['Datos personales', 'Verificación de Identidad Fiscal', 'Domicilio y datos laborales'];
@@ -256,7 +256,7 @@ export default function Registro() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Campo label="Ocupación" maxLength={LIMITES.ocupacion} value={f.ocupacion} onChange={set('ocupacion')} error={errores.ocupacion} />
                 <Campo label="Empresa" maxLength={LIMITES.empresa} value={f.empresa} onChange={set('empresa')} error={errores.empresa} />
-                <Campo label="Ingreso mensual" inputMode="decimal" value={f.ingresoMensual} error={errores.ingresoMensual} placeholder="0.00"
+                <Campo label="Ingreso mensual" inputMode="decimal" value={f.ingresoMensual} error={errores.ingresoMensual} aviso={avisoIngreso(f.ingresoMensual)} placeholder="0.00"
                   onChange={(e) => { const v = e.target.value; setF((p) => ({ ...p, ingresoMensual: filtrarIngreso(v, p.ingresoMensual) })); setErrores((p) => ({ ...p, ingresoMensual: undefined })); }}
                   ayuda={<span className="text-slate-400">Máximo 15 dígitos y 2 decimales</span>} />
               </div>

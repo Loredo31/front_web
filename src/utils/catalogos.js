@@ -90,3 +90,7 @@ export const LIMITES = { nombre: 50, password: 50, calle: 150, colonia: 100, ocu
 
 /** Ingreso mensual: máximo 15 dígitos enteros y 2 decimales (lo que no cumpla se ignora al escribir). */
 export const filtrarIngreso = (v, anterior = '') => (/^\d{0,15}(\.\d{0,2})?$/.test(v) ? v : anterior);
+
+/** Mensaje cuando el ingreso llega a 15 dígitos enteros (ya no se pueden escribir más). */
+export const avisoIngreso = (v) => (String(v || '').split('.')[0].length >= 15
+  ? 'Llegaste al límite: máximo 15 dígitos y 2 decimales' : null);
