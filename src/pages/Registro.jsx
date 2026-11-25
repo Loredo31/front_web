@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom';
 import { Alerta, Boton, Campo, Selector } from '../components/ui';
 import AuthLayout from '../layout/AuthLayout';
 import { clientesApi } from '../api/servicios';
-import { num } from '../api/http';
+import CamposDomicilio, { useCorreoDisponible } from '../components/Domicilio';
 import {
-  ESTADOS, ESTADOS_CIVILES, FILTROS, LIMITES, MINIMOS, NACIONALIDADES, PAISES, SEXOS, avisoIngreso, esMexico, faltaMinimo, filtrarIngreso,
-  opcionesMunicipio,
+  ESTADOS_CIVILES, FILTROS, LIMITES, MINIMOS, NACIONALIDADES, RANGOS_INGRESO, SEXOS, faltaMinimo,
 } from '../utils/catalogos';
 import { CORREO_REGEX, MENSAJE_CORREO, CURP_REGEX, PASSWORD_REGEX, RFC_REGEX, cuentaAgrupada } from '../utils/formato';
+
+const CORREO_OCUPADO = 'Este correo ya está registrado. Inicia sesión o usa otro correo.';
 
 const PASOS = ['Datos personales', 'Verificación de Identidad Fiscal', 'Domicilio y datos laborales'];
 
@@ -17,7 +18,7 @@ const inicial = {
   sexo: '', estadoCivil: '', nacionalidad: 'MEXICANA',
   curp: '', rfc: '', correoElectronico: '', telefonoMovil: '', telefonoAlternativo: '',
   calle: '', numeroExterior: '', numeroInterior: '', colonia: '', municipio: '', estado: '', codigoPostal: '', pais: 'MÉXICO',
-  ocupacion: '', empresa: '', ingresoMensual: '',
+  ocupacion: '', empresa: '', rangoIngreso: '',
   password: '', confirmacion: '', acepto: false,
 };
 
@@ -26,7 +27,7 @@ const CAMPOS_PASO = [
   ['nombre', 'segundoNombre', 'apellidoPaterno', 'apellidoMaterno', 'fechaNacimiento', 'sexo', 'estadoCivil', 'nacionalidad'],
   ['curp', 'rfc', 'correoElectronico', 'telefonoMovil', 'telefonoAlternativo'],
   ['calle', 'numeroExterior', 'numeroInterior', 'colonia', 'municipio', 'estado', 'codigoPostal', 'pais',
-    'ocupacion', 'empresa', 'ingresoMensual', 'password', 'confirmacion', 'acepto'],
+    'ocupacion', 'empresa', 'rangoIngreso', 'password', 'confirmacion', 'acepto'],
 ];
 
 const SOLO_LETRAS = /^[\p{L}\s]+$/u;
@@ -48,7 +49,7 @@ function edad(fecha) {
   return e;
 }
 
-function validarPaso(paso, f) {
+function validarPaso(paso, f, correoEstado) {
   const e = {};
   const req = (k, msg = 'Obligatorio') => { if (!String(f[k] ?? '').trim()) e[k] = msg; };
   if (paso === 0) {
@@ -74,13 +75,19 @@ function validarPaso(paso, f) {
     if (!CURP_REGEX.test(f.curp)) e.curp = 'CURP con formato inválido (18 caracteres)';
     if (!RFC_REGEX.test(f.rfc)) e.rfc = 'RFC con formato inválido (12 o 13 caracteres)';
     if (!CORREO_REGEX.test(f.correoElectronico.trim())) e.correoElectronico = MENSAJE_CORREO;
+    else if (correoEstado === 'ocupado') e.correoElectronico = CORREO_OCUPADO;
+    else if (correoEstado === 'verificando') e.correoElectronico = 'Estamos verificando el correo, espera un momento…';
     if (!/^\d{10}$/.test(f.telefonoMovil)) e.telefonoMovil = 'Debe tener 10 dígitos';
     if (f.telefonoAlternativo && !/^\d{10}$/.test(f.telefonoAlternativo)) e.telefonoAlternativo = 'Debe tener 10 dígitos';
   }
   if (paso === 2) {
-    ['calle', 'numeroExterior', 'colonia', 'municipio', 'estado', 'pais', 'ocupacion', 'empresa', 'ingresoMensual'].forEach((k) => req(k));
-    if (!/^\d{5}$/.test(f.codigoPostal)) e.codigoPostal = '5 dígitos';
-    ['calle', 'colonia', 'ocupacion', 'empresa'].forEach((k) => {
+    // Ocupación y empresa son opcionales (si se escriben, deben cumplir el mínimo).
+    ['calle', 'numeroExterior', 'pais'].forEach((k) => req(k));
+    req('colonia', 'Elige tu colonia');
+    req('rangoIngreso', 'Elige tu ingreso mensual');
+    if (!/^\d{5}$/.test(f.codigoPostal)) e.codigoPostal = 'Escribe los 5 dígitos de tu código postal';
+    else if (!f.estado || !f.municipio) e.codigoPostal = 'Escribe un código postal válido';
+    ['calle', 'ocupacion', 'empresa'].forEach((k) => {
       if (!e[k] && faltaMinimo(f[k], MINIMOS[k])) e[k] = faltaMinimo(f[k], MINIMOS[k]);
     });
     if (!PASSWORD_REGEX.test(f.password)) e.password = 'No cumple las reglas de seguridad';
@@ -106,7 +113,7 @@ function armarPeticion(f) {
       calle: f.calle.trim(), numeroExterior: n(f.numeroExterior), numeroInterior: n(f.numeroInterior),
       colonia: f.colonia.trim(), municipio: f.municipio.trim(), estado: f.estado, codigoPostal: f.codigoPostal, pais: f.pais,
     },
-    informacionLaboral: { ocupacion: f.ocupacion.trim(), empresa: f.empresa.trim(), ingresoMensual: num(f.ingresoMensual) },
+    informacionLaboral: { ocupacion: f.ocupacion.trim() || undefined, empresa: f.empresa.trim() || undefined, rangoIngreso: f.rangoIngreso },
     password: f.password,
   };
 }
@@ -125,11 +132,16 @@ export default function Registro() {
     setErrores((p) => ({ ...p, [k]: undefined }));
   };
   const mayus = (v) => v.toUpperCase().replace(/\s/g, '');
+  const correoEstado = useCorreoDisponible(f.correoElectronico, CORREO_REGEX.test(f.correoElectronico.trim()));
+  const actualizar = (cambios) => {
+    setF((p) => ({ ...p, ...cambios }));
+    setErrores((p) => ({ ...p, ...Object.fromEntries(Object.keys(cambios).map((k) => [k, undefined])) }));
+  };
   const digitos = (max) => (v) => v.replace(/\D/g, '').slice(0, max);
 
   const siguiente = (e) => {
     e.preventDefault();
-    const errs = validarPaso(paso, f);
+    const errs = validarPaso(paso, f, correoEstado);
     setErrores(errs);
     if (Object.keys(errs).length) return;
     if (paso < 2) setPaso(paso + 1);
@@ -232,10 +244,13 @@ export default function Registro() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Campo label="Nombre completo" disabled value={[f.nombre, f.segundoNombre, f.apellidoPaterno, f.apellidoMaterno].filter(Boolean).join(' ').toUpperCase()} />
               <Campo label="Correo electrónico" type="email" maxLength={100} value={f.correoElectronico}
-                onChange={set('correoElectronico', (v) => v.replace(/\s/g, ''))} error={errores.correoElectronico}
-                ayuda={f.correoElectronico && (CORREO_REGEX.test(f.correoElectronico)
-                  ? <span className="text-emerald-600 font-semibold">✓ Correo válido</span>
-                  : <span className="text-slate-400">Debe tener @ y terminar en .com o .mx</span>)} />
+                onChange={set('correoElectronico', (v) => v.replace(/\s/g, ''))}
+                error={errores.correoElectronico || (correoEstado === 'ocupado' ? CORREO_OCUPADO : undefined)}
+                ayuda={f.correoElectronico && (!CORREO_REGEX.test(f.correoElectronico)
+                  ? <span className="text-slate-400">Debe tener @ y terminar en .com o .mx</span>
+                  : correoEstado === 'verificando' ? <span className="text-slate-400">Verificando si el correo ya está registrado…</span>
+                    : correoEstado === 'disponible' ? <span className="text-emerald-600 font-semibold">✓ Correo disponible</span>
+                      : <span className="text-emerald-600 font-semibold">✓ Correo válido</span>)} />
               <Campo label="Teléfono móvil" inputMode="numeric" value={f.telefonoMovil} onChange={set('telefonoMovil', digitos(10))} error={errores.telefonoMovil} placeholder="4181234567" />
               <Campo label="Teléfono alternativo (opcional)" inputMode="numeric" value={f.telefonoAlternativo} onChange={set('telefonoAlternativo', digitos(10))} error={errores.telefonoAlternativo} />
             </div>
@@ -247,31 +262,14 @@ export default function Registro() {
           <div className="space-y-4 animar">
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Domicilio</h4>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <Campo label="Calle" className="col-span-2" maxLength={LIMITES.calle} minimo={MINIMOS.calle} value={f.calle} onChange={set('calle', FILTROS.direccion)} error={errores.calle} />
-                <Campo label="Núm. ext." inputMode="numeric" value={f.numeroExterior} onChange={set('numeroExterior', digitos(6))} error={errores.numeroExterior} />
-                <Campo label="Núm. int. (opcional)" inputMode="numeric" value={f.numeroInterior} onChange={set('numeroInterior', digitos(6))} error={errores.numeroInterior} />
-                <Campo label="Colonia" className="col-span-2" maxLength={LIMITES.colonia} minimo={MINIMOS.colonia} value={f.colonia} onChange={set('colonia', FILTROS.direccion)} error={errores.colonia} />
-                <Selector label="Municipio" className="col-span-2" opciones={opcionesMunicipio(f.estado)} value={f.municipio} onChange={set('municipio')}
-                  error={errores.municipio} disabled={!f.estado}
-                  vacio={f.estado ? 'Selecciona…' : 'Primero elige el estado'} />
-                <Selector label="Estado" className="col-span-2" opciones={ESTADOS} value={f.estado} error={errores.estado}
-                  onChange={(e) => { const v = e.target.value; setF((p) => ({ ...p, estado: v, municipio: '' })); setErrores((p) => ({ ...p, estado: undefined })); }} />
-                <Campo label="C.P." inputMode="numeric" value={f.codigoPostal} onChange={set('codigoPostal', digitos(5))} error={errores.codigoPostal} />
-                <Selector label="País" opciones={PAISES} value={f.pais} onChange={set('pais')} error={errores.pais} />
-              </div>
-              {!esMexico(f.pais) && (
-                <Alerta tipo="info" className="mt-2">Por ahora el estado y el código postal solo admiten domicilios dentro de México.</Alerta>
-              )}
+              <CamposDomicilio form={f} actualizar={actualizar} errores={errores} />
             </div>
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Información laboral</h4>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Campo label="Ocupación" maxLength={LIMITES.ocupacion} minimo={MINIMOS.ocupacion} value={f.ocupacion} onChange={set('ocupacion', FILTROS.ocupacion)} error={errores.ocupacion} />
-                <Campo label="Empresa" maxLength={LIMITES.empresa} minimo={MINIMOS.empresa} value={f.empresa} onChange={set('empresa', FILTROS.empresa)} error={errores.empresa} />
-                <Campo label="Ingreso mensual" inputMode="decimal" value={f.ingresoMensual} error={errores.ingresoMensual} aviso={avisoIngreso(f.ingresoMensual)} placeholder="0.00"
-                  onChange={(e) => { const v = e.target.value; setF((p) => ({ ...p, ingresoMensual: filtrarIngreso(v, p.ingresoMensual) })); setErrores((p) => ({ ...p, ingresoMensual: undefined })); }}
-                  ayuda={<span className="text-slate-400">Máximo 15 dígitos y 2 decimales</span>} />
+                <Campo label="Ocupación (opcional)" maxLength={LIMITES.ocupacion} minimo={MINIMOS.ocupacion} value={f.ocupacion} onChange={set('ocupacion', FILTROS.ocupacion)} error={errores.ocupacion} />
+                <Campo label="Empresa (opcional)" maxLength={LIMITES.empresa} minimo={MINIMOS.empresa} value={f.empresa} onChange={set('empresa', FILTROS.empresa)} error={errores.empresa} />
+                <Selector label="Ingreso mensual" opciones={RANGOS_INGRESO} value={f.rangoIngreso} onChange={set('rangoIngreso')} error={errores.rangoIngreso} />
               </div>
             </div>
             <div>

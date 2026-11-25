@@ -44,6 +44,9 @@ export default function Ticket({ pago, onVerificar, verificando, onCerrar }) {
           </div>
         ))}
       </div>
+      {pago.descripcionProducto && (
+        <p className="text-xs text-slate-500 mt-3"><span className="font-semibold text-slate-600">Descripción: </span>{pago.descripcionProducto}</p>
+      )}
       {pago.leyenda && <p className="text-xs text-slate-500 mt-3 whitespace-pre-line">{pago.leyenda}</p>}
       {pago.mensajeRespuesta && pago.estado !== 'EXITOSA' && (
         <p className="text-xs text-slate-500 mt-3">Respuesta del proveedor: {pago.mensajeRespuesta}</p>

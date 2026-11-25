@@ -95,6 +95,16 @@ export const filtrarIngreso = (v, anterior = '') => (/^\d{0,15}(\.\d{0,2})?$/.te
 export const avisoIngreso = (v) => (String(v || '').split('.')[0].length >= 15
   ? 'Llegaste al límite: máximo 15 dígitos y 2 decimales' : null);
 
+/** Rangos de ingreso mensual (lista del registro y de Mi perfil). */
+export const RANGOS_INGRESO = [
+  { valor: 'HASTA_5000', texto: '5,000 o menos' },
+  { valor: 'DE_5000_A_10000', texto: '5,000 - 10,000' },
+  { valor: 'DE_10000_A_20000', texto: '10,000 - 20,000' },
+  { valor: 'DE_20000_A_30000', texto: '20,000 - 30,000' },
+  { valor: 'MAS_DE_30000', texto: '30,000 o más' },
+];
+export const textoRango = (v) => RANGOS_INGRESO.find((r) => r.valor === v)?.texto || '—';
+
 /** Mínimos de caracteres (iguales a los del backend). */
 export const MINIMOS = { nombre: 2, calle: 3, colonia: 3, ocupacion: 2, empresa: 2 };
 

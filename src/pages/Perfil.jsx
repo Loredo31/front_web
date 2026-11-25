@@ -1,26 +1,25 @@
 import { useCallback, useEffect, useState } from 'react';
 import { clientesApi } from '../api/servicios';
-import { num } from '../api/http';
+import CamposDomicilio from '../components/Domicilio';
 import { useAuth } from '../auth/AuthContext';
 import { Alerta, Boton, Campo, Cargando, Selector } from '../components/ui';
 import { ModalAutorizar } from '../components/Pin';
 import { Encabezado } from './Billetera';
 import {
-  ESTADOS, ESTADOS_CIVILES, FILTROS, LIMITES, MINIMOS, PAISES, avisoIngreso, esMexico, faltaMinimo, filtrarIngreso, municipioDeLista, nombreEstado, opcionesMunicipio, textoEnum, valorDeLista,
+  ESTADOS_CIVILES, FILTROS, LIMITES, MINIMOS, PAISES, RANGOS_INGRESO, faltaMinimo, nombreEstado, textoEnum, textoRango, valorDeLista,
 } from '../utils/catalogos';
-import { formatoFecha, formatoMoneda } from '../utils/formato';
+import { formatoFecha } from '../utils/formato';
 
 // Campos editables (PATCH /clientes acepta estos nombres planos).
 // El correo no está: es el usuario de acceso y no se puede modificar.
 const EDITABLES = ['estadoCivil', 'telefonoMovil', 'telefonoAlternativo', 'calle', 'numeroExterior',
-  'numeroInterior', 'colonia', 'municipio', 'estado', 'codigoPostal', 'pais', 'ocupacion', 'empresa', 'ingresoMensual'];
-const NUMERICOS = ['telefonoMovil', 'telefonoAlternativo', 'numeroExterior', 'numeroInterior', 'ingresoMensual'];
+  'numeroInterior', 'colonia', 'municipio', 'estado', 'codigoPostal', 'pais', 'ocupacion', 'empresa', 'rangoIngreso'];
+const NUMERICOS = ['telefonoMovil', 'telefonoAlternativo', 'numeroExterior', 'numeroInterior'];
 
 function aplanar(c) {
   return {
     estadoCivil: c.datosPersonales?.estadoCivil, ...c.datosContacto, ...c.domicilio, ...c.informacionLaboral,
     pais: valorDeLista(PAISES, c.domicilio?.pais),
-    municipio: municipioDeLista(c.domicilio?.estado, c.domicilio?.municipio),
   };
 }
 
@@ -59,8 +58,8 @@ export default function Perfil() {
   const digitos = (max) => (v) => v.replace(/\D/g, '').slice(0, max);
 
   const cambios = () => Object.fromEntries(EDITABLES.filter((k) => form[k] !== original[k]).map((k) => [
-    // El ingreso va sin redondear (hasta 15 dígitos enteros y 2 decimales).
-    k, k === 'ingresoMensual' ? num(form[k]) : NUMERICOS.includes(k) ? (form[k] === '' ? null : Number(form[k])) : form[k].trim(),
+    // Ocupación y empresa vacías se envían como "" para borrarlas (son opcionales).
+    k, NUMERICOS.includes(k) ? (form[k] === '' ? null : Number(form[k])) : form[k].trim(),
   ]));
 
   const revisar = (e) => {
@@ -68,10 +67,12 @@ export default function Perfil() {
     const errs = {};
     if (!/^\d{10}$/.test(form.telefonoMovil)) errs.telefonoMovil = '10 dígitos';
     if (form.telefonoAlternativo && !/^\d{10}$/.test(form.telefonoAlternativo)) errs.telefonoAlternativo = '10 dígitos';
-    if (!/^\d{5}$/.test(form.codigoPostal)) errs.codigoPostal = '5 dígitos';
-    ['calle', 'numeroExterior', 'colonia', 'municipio', 'estado', 'pais', 'ocupacion', 'empresa', 'ingresoMensual']
-      .forEach((k) => { if (!String(form[k]).trim()) errs[k] = 'Obligatorio'; });
-    ['calle', 'colonia', 'ocupacion', 'empresa'].forEach((k) => {
+    if (!/^\d{5}$/.test(form.codigoPostal)) errs.codigoPostal = 'Escribe los 5 dígitos de tu código postal';
+    else if (!form.estado || !form.municipio) errs.codigoPostal = 'Escribe un código postal válido';
+    ['calle', 'numeroExterior', 'pais'].forEach((k) => { if (!String(form[k]).trim()) errs[k] = 'Obligatorio'; });
+    if (!form.colonia) errs.colonia = 'Elige tu colonia';
+    if (!form.rangoIngreso) errs.rangoIngreso = 'Elige tu ingreso mensual';
+    ['calle', 'ocupacion', 'empresa'].forEach((k) => {
       if (!errs[k] && faltaMinimo(form[k], MINIMOS[k])) errs[k] = faltaMinimo(form[k], MINIMOS[k]);
     });
     setErrores(errs);
@@ -147,7 +148,7 @@ export default function Perfil() {
             ['C.P.', dom.codigoPostal], ['País', dom.pais],
           ]} />
           <Tarjeta titulo="Información laboral" filas={[
-            ['Ocupación', lab.ocupacion], ['Empresa', lab.empresa], ['Ingreso mensual', formatoMoneda(lab.ingresoMensual)],
+            ['Ocupación', lab.ocupacion], ['Empresa', lab.empresa], ['Ingreso mensual', textoRango(lab.rangoIngreso)],
           ]} />
         </div>
       ) : (
@@ -161,26 +162,12 @@ export default function Perfil() {
             <Campo label="Teléfono alternativo" value={form.telefonoAlternativo} onChange={set('telefonoAlternativo', digitos(10))} error={errores.telefonoAlternativo} />
             <Selector label="Estado civil" opciones={ESTADOS_CIVILES} value={form.estadoCivil} onChange={set('estadoCivil')} error={errores.estadoCivil} />
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Campo label="Calle" className="col-span-2" maxLength={LIMITES.calle} minimo={MINIMOS.calle} value={form.calle} onChange={set('calle', FILTROS.direccion)} error={errores.calle} />
-            <Campo label="Núm. ext." value={form.numeroExterior} onChange={set('numeroExterior', digitos(6))} error={errores.numeroExterior} />
-            <Campo label="Núm. int. (opcional)" value={form.numeroInterior} onChange={set('numeroInterior', digitos(6))} error={errores.numeroInterior} />
-            <Campo label="Colonia" className="col-span-2" maxLength={LIMITES.colonia} minimo={MINIMOS.colonia} value={form.colonia} onChange={set('colonia', FILTROS.direccion)} error={errores.colonia} />
-            <Selector label="Municipio" className="col-span-2" opciones={opcionesMunicipio(form.estado, form.municipio)} value={form.municipio}
-              onChange={set('municipio')} error={errores.municipio} disabled={!form.estado} />
-            <Selector label="Estado" className="col-span-2" opciones={ESTADOS} value={form.estado} error={errores.estado}
-              onChange={(e) => { const v = e.target.value; setForm((f) => ({ ...f, estado: v, municipio: '' })); setErrores((x) => ({ ...x, estado: undefined })); }} />
-            <Campo label="C.P." value={form.codigoPostal} onChange={set('codigoPostal', digitos(5))} error={errores.codigoPostal} />
-            <Selector label="País" opciones={PAISES} value={form.pais} onChange={set('pais')} error={errores.pais} />
-          </div>
-          {!esMexico(form.pais) && (
-            <Alerta tipo="info">Por ahora el estado y el código postal solo admiten domicilios dentro de México.</Alerta>
-          )}
+          <CamposDomicilio form={form} errores={errores} conservarColonia
+            actualizar={(c) => { setForm((f) => ({ ...f, ...c })); setErrores((x) => ({ ...x, ...Object.fromEntries(Object.keys(c).map((k) => [k, undefined])) })); }} />
           <div className="grid sm:grid-cols-3 gap-3">
-            <Campo label="Ocupación" maxLength={LIMITES.ocupacion} minimo={MINIMOS.ocupacion} value={form.ocupacion} onChange={set('ocupacion', FILTROS.ocupacion)} error={errores.ocupacion} />
-            <Campo label="Empresa" maxLength={LIMITES.empresa} minimo={MINIMOS.empresa} value={form.empresa} onChange={set('empresa', FILTROS.empresa)} error={errores.empresa} />
-            <Campo label="Ingreso mensual" inputMode="decimal" value={form.ingresoMensual} error={errores.ingresoMensual} aviso={avisoIngreso(form.ingresoMensual)}
-              onChange={(e) => { const v = e.target.value; setForm((f) => ({ ...f, ingresoMensual: filtrarIngreso(v, f.ingresoMensual) })); setErrores((x) => ({ ...x, ingresoMensual: undefined })); }} />
+            <Campo label="Ocupación (opcional)" maxLength={LIMITES.ocupacion} minimo={MINIMOS.ocupacion} value={form.ocupacion} onChange={set('ocupacion', FILTROS.ocupacion)} error={errores.ocupacion} />
+            <Campo label="Empresa (opcional)" maxLength={LIMITES.empresa} minimo={MINIMOS.empresa} value={form.empresa} onChange={set('empresa', FILTROS.empresa)} error={errores.empresa} />
+            <Selector label="Ingreso mensual" opciones={RANGOS_INGRESO} value={form.rangoIngreso} onChange={set('rangoIngreso')} error={errores.rangoIngreso} />
           </div>
           <div className="flex justify-end gap-2">
             <Boton type="button" variante="secundario" onClick={() => setEditando(false)}>Cancelar</Boton>

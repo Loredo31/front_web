@@ -36,6 +36,10 @@ export const authApi = {
 // ---------------- Clientes ----------------
 export const clientesApi = {
   registrar: (datos) => api('/clientes/onboarding', { auth: false, body: datos }),
+  /** Estado, municipio y colonias del código postal (catálogo de SEPOMEX). 404 si no existe. */
+  codigoPostal: (cp) => api(`/clientes/codigo-postal/${cp}`, { method: 'GET', auth: false, timeoutMs: 20000 }),
+  /** { disponible: true|false }: si el correo aún no está registrado. */
+  correoDisponible: (correo) => api('/clientes/correo/disponible', { auth: false, body: { correo }, timeoutMs: 20000 }),
   detalle: (id) => api('/clientes/detalle', { body: { id } }),
   actualizarParcial: (cambios, pin) => api('/clientes', { method: 'PATCH', body: cambios, pin }),
   baja: (id, pin) => api('/clientes/baja', { method: 'PUT', body: { id }, pin }),

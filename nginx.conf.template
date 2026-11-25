@@ -6,6 +6,14 @@ server {
         root /usr/share/nginx/html;
         index index.html;
         try_files $uri $uri/ /index.html;
+        # index.html siempre se revalida: así cada despliegue nuevo se ve sin borrar la caché del navegador.
+        add_header Cache-Control "no-cache" always;
+    }
+
+    # Los JS/CSS llevan un hash en el nombre (cambia en cada build): se pueden guardar en caché sin riesgo.
+    location /assets/ {
+        root /usr/share/nginx/html;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
     }
 
     # Proxy inverso transparente hacia el backend en Railway
