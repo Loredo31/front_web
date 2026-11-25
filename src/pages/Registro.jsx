@@ -83,10 +83,11 @@ function validarPaso(paso, f, correoEstado) {
   if (paso === 2) {
     // Ocupación y empresa son opcionales (si se escriben, deben cumplir el mínimo).
     ['calle', 'numeroExterior', 'pais'].forEach((k) => req(k));
-    req('colonia', 'Elige tu colonia');
+    req('estado', 'Elige el estado');
+    req('municipio', 'Elige el municipio');
+    req('colonia', 'Escribe o elige tu colonia');
     req('rangoIngreso', 'Elige tu ingreso mensual');
     if (!/^\d{5}$/.test(f.codigoPostal)) e.codigoPostal = 'Escribe los 5 dígitos de tu código postal';
-    else if (!f.estado || !f.municipio) e.codigoPostal = 'Escribe un código postal válido';
     ['calle', 'ocupacion', 'empresa'].forEach((k) => {
       if (!e[k] && faltaMinimo(f[k], MINIMOS[k])) e[k] = faltaMinimo(f[k], MINIMOS[k]);
     });

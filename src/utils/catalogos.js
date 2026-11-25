@@ -115,6 +115,8 @@ export const FILTROS = {
   letras: limpiar(/[^\p{L}\s]/gu),
   /** Calle y colonia: letras, números, espacios y . , # - */
   direccion: limpiar(/[^\p{L}0-9\s.,#-]/gu),
+  /** Colonia: como la dirección, más ( ) [ ] " / ° ´ ' (nombres oficiales de SEPOMEX). */
+  colonia: limpiar(/[^\p{L}0-9\s.,#()[\]"/°´'-]/gu),
   /** Ocupación: letras, números, espacios y . , - */
   ocupacion: limpiar(/[^\p{L}0-9\s.,-]/gu),
   /** Empresa: letras, números, espacios y . , & ' - */

@@ -68,9 +68,10 @@ export default function Perfil() {
     if (!/^\d{10}$/.test(form.telefonoMovil)) errs.telefonoMovil = '10 dígitos';
     if (form.telefonoAlternativo && !/^\d{10}$/.test(form.telefonoAlternativo)) errs.telefonoAlternativo = '10 dígitos';
     if (!/^\d{5}$/.test(form.codigoPostal)) errs.codigoPostal = 'Escribe los 5 dígitos de tu código postal';
-    else if (!form.estado || !form.municipio) errs.codigoPostal = 'Escribe un código postal válido';
     ['calle', 'numeroExterior', 'pais'].forEach((k) => { if (!String(form[k]).trim()) errs[k] = 'Obligatorio'; });
-    if (!form.colonia) errs.colonia = 'Elige tu colonia';
+    if (!form.estado) errs.estado = 'Elige el estado';
+    if (!form.municipio) errs.municipio = 'Elige el municipio';
+    if (!form.colonia.trim()) errs.colonia = 'Escribe o elige tu colonia';
     if (!form.rangoIngreso) errs.rangoIngreso = 'Elige tu ingreso mensual';
     ['calle', 'ocupacion', 'empresa'].forEach((k) => {
       if (!errs[k] && faltaMinimo(form[k], MINIMOS[k])) errs[k] = faltaMinimo(form[k], MINIMOS[k]);
@@ -162,7 +163,7 @@ export default function Perfil() {
             <Campo label="Teléfono alternativo" value={form.telefonoAlternativo} onChange={set('telefonoAlternativo', digitos(10))} error={errores.telefonoAlternativo} />
             <Selector label="Estado civil" opciones={ESTADOS_CIVILES} value={form.estadoCivil} onChange={set('estadoCivil')} error={errores.estadoCivil} />
           </div>
-          <CamposDomicilio form={form} errores={errores} conservarColonia
+          <CamposDomicilio form={form} errores={errores}
             actualizar={(c) => { setForm((f) => ({ ...f, ...c })); setErrores((x) => ({ ...x, ...Object.fromEntries(Object.keys(c).map((k) => [k, undefined])) })); }} />
           <div className="grid sm:grid-cols-3 gap-3">
             <Campo label="Ocupación (opcional)" maxLength={LIMITES.ocupacion} minimo={MINIMOS.ocupacion} value={form.ocupacion} onChange={set('ocupacion', FILTROS.ocupacion)} error={errores.ocupacion} />
