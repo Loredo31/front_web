@@ -4,7 +4,10 @@ import { Alerta, Boton, Campo, Selector } from '../components/ui';
 import AuthLayout from '../layout/AuthLayout';
 import { clientesApi } from '../api/servicios';
 import { num } from '../api/http';
-import { ESTADOS, ESTADOS_CIVILES, LIMITES, NACIONALIDADES, PAISES, SEXOS, avisoIngreso, esMexico, filtrarIngreso, opcionesMunicipio } from '../utils/catalogos';
+import {
+  ESTADOS, ESTADOS_CIVILES, FILTROS, LIMITES, MINIMOS, NACIONALIDADES, PAISES, SEXOS, avisoIngreso, esMexico, faltaMinimo, filtrarIngreso,
+  opcionesMunicipio,
+} from '../utils/catalogos';
 import { CORREO_REGEX, CURP_REGEX, PASSWORD_REGEX, RFC_REGEX, cuentaAgrupada } from '../utils/formato';
 
 const PASOS = ['Datos personales', 'Verificación de Identidad Fiscal', 'Domicilio y datos laborales'];
@@ -55,6 +58,9 @@ function validarPaso(paso, f) {
       if (!e[k] && !SOLO_LETRAS.test(f[k])) e[k] = 'Solo letras y espacios';
     });
     if (f.segundoNombre && !SOLO_LETRAS.test(f.segundoNombre)) e.segundoNombre = 'Solo letras y espacios';
+    ['nombre', 'segundoNombre', 'apellidoPaterno', 'apellidoMaterno'].forEach((k) => {
+      if (!e[k] && faltaMinimo(f[k], MINIMOS.nombre)) e[k] = faltaMinimo(f[k], MINIMOS.nombre);
+    });
     req('fechaNacimiento');
     if (f.fechaNacimiento) {
       const anios = edad(f.fechaNacimiento);
@@ -74,6 +80,9 @@ function validarPaso(paso, f) {
   if (paso === 2) {
     ['calle', 'numeroExterior', 'colonia', 'municipio', 'estado', 'pais', 'ocupacion', 'empresa', 'ingresoMensual'].forEach((k) => req(k));
     if (!/^\d{5}$/.test(f.codigoPostal)) e.codigoPostal = '5 dígitos';
+    ['calle', 'colonia', 'ocupacion', 'empresa'].forEach((k) => {
+      if (!e[k] && faltaMinimo(f[k], MINIMOS[k])) e[k] = faltaMinimo(f[k], MINIMOS[k]);
+    });
     if (!PASSWORD_REGEX.test(f.password)) e.password = 'No cumple las reglas de seguridad';
     if (f.password !== f.confirmacion) e.confirmacion = 'Las contraseñas no coinciden';
     if (!f.acepto) e.acepto = 'Debes aceptar para continuar';
@@ -195,10 +204,10 @@ export default function Registro() {
       <form onSubmit={siguiente} className="space-y-3" noValidate>
         {paso === 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animar">
-            <Campo label="Nombre" maxLength={LIMITES.nombre} value={f.nombre} onChange={set('nombre')} error={errores.nombre} />
-            <Campo label="Segundo nombre (opcional)" maxLength={LIMITES.nombre} value={f.segundoNombre} onChange={set('segundoNombre')} error={errores.segundoNombre} />
-            <Campo label="Apellido paterno" maxLength={LIMITES.nombre} value={f.apellidoPaterno} onChange={set('apellidoPaterno')} error={errores.apellidoPaterno} />
-            <Campo label="Apellido materno" maxLength={LIMITES.nombre} value={f.apellidoMaterno} onChange={set('apellidoMaterno')} error={errores.apellidoMaterno} />
+            <Campo label="Nombre" maxLength={LIMITES.nombre} minimo={MINIMOS.nombre} value={f.nombre} onChange={set('nombre', FILTROS.letras)} error={errores.nombre} />
+            <Campo label="Segundo nombre (opcional)" maxLength={LIMITES.nombre} minimo={MINIMOS.nombre} value={f.segundoNombre} onChange={set('segundoNombre', FILTROS.letras)} error={errores.segundoNombre} />
+            <Campo label="Apellido paterno" maxLength={LIMITES.nombre} minimo={MINIMOS.nombre} value={f.apellidoPaterno} onChange={set('apellidoPaterno', FILTROS.letras)} error={errores.apellidoPaterno} />
+            <Campo label="Apellido materno" maxLength={LIMITES.nombre} minimo={MINIMOS.nombre} value={f.apellidoMaterno} onChange={set('apellidoMaterno', FILTROS.letras)} error={errores.apellidoMaterno} />
             <Campo label="Fecha de nacimiento" type="date" min={haceAnios(EDAD_MAXIMA + 1)} max={haceAnios(EDAD_MINIMA)} value={f.fechaNacimiento} onChange={set('fechaNacimiento')} error={errores.fechaNacimiento} />
             <Selector label="Sexo" opciones={SEXOS} value={f.sexo} onChange={set('sexo')} error={errores.sexo} />
             <Selector label="Estado civil" opciones={ESTADOS_CIVILES} value={f.estadoCivil} onChange={set('estadoCivil')} error={errores.estadoCivil} />
@@ -235,10 +244,10 @@ export default function Registro() {
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Domicilio</h4>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <Campo label="Calle" className="col-span-2" maxLength={LIMITES.calle} value={f.calle} onChange={set('calle')} error={errores.calle} />
+                <Campo label="Calle" className="col-span-2" maxLength={LIMITES.calle} minimo={MINIMOS.calle} value={f.calle} onChange={set('calle', FILTROS.direccion)} error={errores.calle} />
                 <Campo label="Núm. ext." inputMode="numeric" value={f.numeroExterior} onChange={set('numeroExterior', digitos(6))} error={errores.numeroExterior} />
                 <Campo label="Núm. int. (opcional)" inputMode="numeric" value={f.numeroInterior} onChange={set('numeroInterior', digitos(6))} error={errores.numeroInterior} />
-                <Campo label="Colonia" className="col-span-2" maxLength={LIMITES.colonia} value={f.colonia} onChange={set('colonia')} error={errores.colonia} />
+                <Campo label="Colonia" className="col-span-2" maxLength={LIMITES.colonia} minimo={MINIMOS.colonia} value={f.colonia} onChange={set('colonia', FILTROS.direccion)} error={errores.colonia} />
                 <Selector label="Municipio" className="col-span-2" opciones={opcionesMunicipio(f.estado)} value={f.municipio} onChange={set('municipio')}
                   error={errores.municipio} disabled={!f.estado}
                   vacio={f.estado ? 'Selecciona…' : 'Primero elige el estado'} />
@@ -254,8 +263,8 @@ export default function Registro() {
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Información laboral</h4>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Campo label="Ocupación" maxLength={LIMITES.ocupacion} value={f.ocupacion} onChange={set('ocupacion')} error={errores.ocupacion} />
-                <Campo label="Empresa" maxLength={LIMITES.empresa} value={f.empresa} onChange={set('empresa')} error={errores.empresa} />
+                <Campo label="Ocupación" maxLength={LIMITES.ocupacion} minimo={MINIMOS.ocupacion} value={f.ocupacion} onChange={set('ocupacion', FILTROS.ocupacion)} error={errores.ocupacion} />
+                <Campo label="Empresa" maxLength={LIMITES.empresa} minimo={MINIMOS.empresa} value={f.empresa} onChange={set('empresa', FILTROS.empresa)} error={errores.empresa} />
                 <Campo label="Ingreso mensual" inputMode="decimal" value={f.ingresoMensual} error={errores.ingresoMensual} aviso={avisoIngreso(f.ingresoMensual)} placeholder="0.00"
                   onChange={(e) => { const v = e.target.value; setF((p) => ({ ...p, ingresoMensual: filtrarIngreso(v, p.ingresoMensual) })); setErrores((p) => ({ ...p, ingresoMensual: undefined })); }}
                   ayuda={<span className="text-slate-400">Máximo 15 dígitos y 2 decimales</span>} />

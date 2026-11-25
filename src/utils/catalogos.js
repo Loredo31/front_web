@@ -94,3 +94,25 @@ export const filtrarIngreso = (v, anterior = '') => (/^\d{0,15}(\.\d{0,2})?$/.te
 /** Mensaje cuando el ingreso llega a 15 dígitos enteros (ya no se pueden escribir más). */
 export const avisoIngreso = (v) => (String(v || '').split('.')[0].length >= 15
   ? 'Llegaste al límite: máximo 15 dígitos y 2 decimales' : null);
+
+/** Mínimos de caracteres (iguales a los del backend). */
+export const MINIMOS = { nombre: 2, calle: 3, colonia: 3, ocupacion: 2, empresa: 2 };
+
+// Al escribir se eliminan los caracteres que el campo no admite (mismas reglas que el backend).
+const limpiar = (permitidos) => (v) => v.replace(permitidos, '').replace(/\s{2,}/g, ' ').replace(/^\s+/, '');
+export const FILTROS = {
+  /** Nombres y apellidos: solo letras (con acentos) y espacios. */
+  letras: limpiar(/[^\p{L}\s]/gu),
+  /** Calle y colonia: letras, números, espacios y . , # - */
+  direccion: limpiar(/[^\p{L}0-9\s.,#-]/gu),
+  /** Ocupación: letras, números, espacios y . , - */
+  ocupacion: limpiar(/[^\p{L}0-9\s.,-]/gu),
+  /** Empresa: letras, números, espacios y . , & ' - */
+  empresa: limpiar(/[^\p{L}0-9\s.,&'-]/gu),
+};
+
+/** Mensaje si el texto (sin espacios a los lados) tiene menos caracteres que el mínimo. */
+export const faltaMinimo = (v, min) => {
+  const n = String(v || '').trim().length;
+  return n > 0 && n < min ? `Debe tener al menos ${min} caracteres` : null;
+};

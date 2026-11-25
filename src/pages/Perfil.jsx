@@ -6,12 +6,13 @@ import { Alerta, Boton, Campo, Cargando, Selector } from '../components/ui';
 import { ModalAutorizar } from '../components/Pin';
 import { Encabezado } from './Billetera';
 import {
-  ESTADOS, ESTADOS_CIVILES, LIMITES, PAISES, avisoIngreso, esMexico, filtrarIngreso, municipioDeLista, nombreEstado, opcionesMunicipio, textoEnum, valorDeLista,
+  ESTADOS, ESTADOS_CIVILES, FILTROS, LIMITES, MINIMOS, PAISES, avisoIngreso, esMexico, faltaMinimo, filtrarIngreso, municipioDeLista, nombreEstado, opcionesMunicipio, textoEnum, valorDeLista,
 } from '../utils/catalogos';
-import { CORREO_REGEX, formatoFecha, formatoMoneda } from '../utils/formato';
+import { formatoFecha, formatoMoneda } from '../utils/formato';
 
 // Campos editables (PATCH /clientes acepta estos nombres planos).
-const EDITABLES = ['estadoCivil', 'correoElectronico', 'telefonoMovil', 'telefonoAlternativo', 'calle', 'numeroExterior',
+// El correo no está: es el usuario de acceso y no se puede modificar.
+const EDITABLES = ['estadoCivil', 'telefonoMovil', 'telefonoAlternativo', 'calle', 'numeroExterior',
   'numeroInterior', 'colonia', 'municipio', 'estado', 'codigoPostal', 'pais', 'ocupacion', 'empresa', 'ingresoMensual'];
 const NUMERICOS = ['telefonoMovil', 'telefonoAlternativo', 'numeroExterior', 'numeroInterior', 'ingresoMensual'];
 
@@ -65,12 +66,14 @@ export default function Perfil() {
   const revisar = (e) => {
     e.preventDefault();
     const errs = {};
-    if (!CORREO_REGEX.test(form.correoElectronico)) errs.correoElectronico = 'Correo inválido';
     if (!/^\d{10}$/.test(form.telefonoMovil)) errs.telefonoMovil = '10 dígitos';
     if (form.telefonoAlternativo && !/^\d{10}$/.test(form.telefonoAlternativo)) errs.telefonoAlternativo = '10 dígitos';
     if (!/^\d{5}$/.test(form.codigoPostal)) errs.codigoPostal = '5 dígitos';
     ['calle', 'numeroExterior', 'colonia', 'municipio', 'estado', 'pais', 'ocupacion', 'empresa', 'ingresoMensual']
       .forEach((k) => { if (!String(form[k]).trim()) errs[k] = 'Obligatorio'; });
+    ['calle', 'colonia', 'ocupacion', 'empresa'].forEach((k) => {
+      if (!errs[k] && faltaMinimo(form[k], MINIMOS[k])) errs[k] = faltaMinimo(form[k], MINIMOS[k]);
+    });
     setErrores(errs);
     if (Object.keys(errs).length) return;
     if (!Object.keys(cambios()).length) { setEditando(false); return; }
@@ -149,18 +152,20 @@ export default function Perfil() {
         </div>
       ) : (
         <form onSubmit={revisar} className="space-y-4 border border-slate-200 rounded-xl p-4">
-          <p className="text-xs text-slate-500">CURP, RFC, nombre y fecha de nacimiento no se pueden modificar desde aquí. Se solicitará tu PIN para guardar.</p>
+          <p className="text-xs text-slate-500">CURP, RFC, nombre, fecha de nacimiento y correo no se pueden modificar desde aquí. Se solicitará tu PIN para guardar.</p>
           <div className="grid sm:grid-cols-3 gap-3">
-            <Campo label="Correo" value={form.correoElectronico} onChange={set('correoElectronico')} error={errores.correoElectronico} />
+            <Campo label="Correo" value={cliente.datosContacto?.correoElectronico || ''} disabled readOnly
+              title="El correo es tu usuario de acceso y no se puede modificar"
+              ayuda={<span className="text-slate-400">🔒 No se puede modificar</span>} />
             <Campo label="Teléfono móvil" value={form.telefonoMovil} onChange={set('telefonoMovil', digitos(10))} error={errores.telefonoMovil} />
             <Campo label="Teléfono alternativo" value={form.telefonoAlternativo} onChange={set('telefonoAlternativo', digitos(10))} error={errores.telefonoAlternativo} />
             <Selector label="Estado civil" opciones={ESTADOS_CIVILES} value={form.estadoCivil} onChange={set('estadoCivil')} error={errores.estadoCivil} />
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Campo label="Calle" className="col-span-2" maxLength={LIMITES.calle} value={form.calle} onChange={set('calle')} error={errores.calle} />
+            <Campo label="Calle" className="col-span-2" maxLength={LIMITES.calle} minimo={MINIMOS.calle} value={form.calle} onChange={set('calle', FILTROS.direccion)} error={errores.calle} />
             <Campo label="Núm. ext." value={form.numeroExterior} onChange={set('numeroExterior', digitos(6))} error={errores.numeroExterior} />
             <Campo label="Núm. int. (opcional)" value={form.numeroInterior} onChange={set('numeroInterior', digitos(6))} error={errores.numeroInterior} />
-            <Campo label="Colonia" className="col-span-2" maxLength={LIMITES.colonia} value={form.colonia} onChange={set('colonia')} error={errores.colonia} />
+            <Campo label="Colonia" className="col-span-2" maxLength={LIMITES.colonia} minimo={MINIMOS.colonia} value={form.colonia} onChange={set('colonia', FILTROS.direccion)} error={errores.colonia} />
             <Selector label="Municipio" className="col-span-2" opciones={opcionesMunicipio(form.estado, form.municipio)} value={form.municipio}
               onChange={set('municipio')} error={errores.municipio} disabled={!form.estado} />
             <Selector label="Estado" className="col-span-2" opciones={ESTADOS} value={form.estado} error={errores.estado}
@@ -172,8 +177,8 @@ export default function Perfil() {
             <Alerta tipo="info">Por ahora el estado y el código postal solo admiten domicilios dentro de México.</Alerta>
           )}
           <div className="grid sm:grid-cols-3 gap-3">
-            <Campo label="Ocupación" maxLength={LIMITES.ocupacion} value={form.ocupacion} onChange={set('ocupacion')} error={errores.ocupacion} />
-            <Campo label="Empresa" maxLength={LIMITES.empresa} value={form.empresa} onChange={set('empresa')} error={errores.empresa} />
+            <Campo label="Ocupación" maxLength={LIMITES.ocupacion} minimo={MINIMOS.ocupacion} value={form.ocupacion} onChange={set('ocupacion', FILTROS.ocupacion)} error={errores.ocupacion} />
+            <Campo label="Empresa" maxLength={LIMITES.empresa} minimo={MINIMOS.empresa} value={form.empresa} onChange={set('empresa', FILTROS.empresa)} error={errores.empresa} />
             <Campo label="Ingreso mensual" inputMode="decimal" value={form.ingresoMensual} error={errores.ingresoMensual} aviso={avisoIngreso(form.ingresoMensual)}
               onChange={(e) => { const v = e.target.value; setForm((f) => ({ ...f, ingresoMensual: filtrarIngreso(v, f.ingresoMensual) })); setErrores((x) => ({ ...x, ingresoMensual: undefined })); }} />
           </div>

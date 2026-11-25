@@ -67,11 +67,14 @@ function InputSecreto({ className, ...props }) {
  * En los campos de texto largos (maxLength de 50 o más: nombres, contraseña, calle, colonia, etc.)
  * avisa automáticamente al llegar al máximo de caracteres; se desactiva con avisoLimite={false}.
  */
-export function Campo({ label, error, ayuda, aviso, avisoLimite, className = '', children, ...props }) {
+export function Campo({ label, error, ayuda, aviso, avisoLimite, minimo, className = '', children, ...props }) {
   const max = Number(props.maxLength) || 0;
   const conAviso = avisoLimite ?? max >= 50;
   const lleno = conAviso && max > 0 && String(props.value ?? '').length >= max;
-  const mensajeAviso = aviso || (lleno ? `Llegaste al límite de ${max} caracteres` : null);
+  const largo = String(props.value ?? '').trim().length;
+  const corto = minimo && largo > 0 && largo < minimo;
+  const mensajeAviso = aviso || (lleno ? `Llegaste al límite de ${max} caracteres` : null)
+    || (corto ? `Mínimo ${minimo} caracteres (llevas ${largo})` : null);
   const claseInput = `w-full bg-slate-50 border rounded-lg p-2 text-sm text-slate-800 mt-1 outline-none transition
             focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-400 disabled:opacity-70
             ${error ? 'border-rose-300' : mensajeAviso ? 'border-amber-300' : 'border-slate-200'}`;
