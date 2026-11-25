@@ -5,7 +5,7 @@ import { useCuentas } from '../layout/AppLayout';
 import { Alerta, Boton, Cargando, Estado, Modal } from '../components/ui';
 import Ticket from '../components/Ticket';
 import { Encabezado } from './Billetera';
-import { formatoFecha, formatoMoneda } from '../utils/formato';
+import { fechaPago, formatoFecha, formatoMoneda } from '../utils/formato';
 
 const TAMANO = 10;
 
@@ -117,7 +117,7 @@ export default function Historial() {
                   {cargandoTicket === p.folio ? 'Abriendo…' : p.folio.slice(0, 13).toUpperCase()}
                 </span>
                 <span className="md:col-span-3 text-slate-800 font-medium truncate text-right md:text-left">{p.nombreProducto || `Servicio ${p.idServicio}`}</span>
-                <span className="md:col-span-2 text-xs text-slate-500">{formatoFecha(p.fechaCreacion)}</span>
+                <span className="md:col-span-2 text-xs text-slate-500">{formatoFecha(fechaPago(p))}</span>
                 <span className="md:col-span-2 text-right font-black text-slate-900">
                   {formatoMoneda(p.montoPago)}
                   {vista === 'pendientes' && <span className="block text-[10px] font-semibold text-amber-600">retenido</span>}

@@ -11,6 +11,9 @@ export function formatoFecha(iso, conHora = true, conSegundos = false) {
     : { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+/** Fecha del pago: la que generamos y enviamos a GestoPago (fechaEnvio); si no existe, la de registro. */
+export const fechaPago = (pago) => pago?.fechaEnvio || pago?.fechaCreacion;
+
 export const ultimos4 = (n) => (n ? String(n).slice(-4) : '••••');
 
 export const cuentaAgrupada = (n) => (n ? String(n).replace(/(.{4})(?=.)/g, '$1 ') : '');

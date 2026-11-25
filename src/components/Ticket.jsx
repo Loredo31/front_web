@@ -1,5 +1,5 @@
 import { Boton, Estado, LogoServicio } from './ui';
-import { formatoFecha, formatoMoneda } from '../utils/formato';
+import { fechaPago, formatoFecha, formatoMoneda } from '../utils/formato';
 
 const titulos = {
   EXITOSA: { icono: '✓', texto: 'Pago Aprobado', tono: 'bg-emerald-100 text-emerald-600' },
@@ -23,8 +23,8 @@ export default function Ticket({ pago, onVerificar, verificando, onCerrar }) {
     pago.upc && ['UPC', <span className="font-mono">{pago.upc}</span>],
     pago.numeroAutorizacion && ['Autorización', <span className="font-mono font-bold">{pago.numeroAutorizacion}</span>],
     pago.codigoCanje && ['Código de canje', <span className="font-mono font-bold text-emerald-700">{pago.codigoCanje}</span>],
-    pago.fechaEnvio && ['Fecha de envío', formatoFecha(pago.fechaEnvio, true, true)],
-    ['Fecha', formatoFecha(pago.fechaCreacion)],
+    // Una sola fecha: la que generamos y enviamos a GestoPago (Date de sendTx, hora de México).
+    ['Fecha', formatoFecha(fechaPago(pago), true, true)],
     ['Estado', <Estado valor={pago.estado} />],
   ].filter(Boolean);
 
