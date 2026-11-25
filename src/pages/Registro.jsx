@@ -8,7 +8,7 @@ import {
   ESTADOS, ESTADOS_CIVILES, FILTROS, LIMITES, MINIMOS, NACIONALIDADES, PAISES, SEXOS, avisoIngreso, esMexico, faltaMinimo, filtrarIngreso,
   opcionesMunicipio,
 } from '../utils/catalogos';
-import { CORREO_REGEX, CURP_REGEX, PASSWORD_REGEX, RFC_REGEX, cuentaAgrupada } from '../utils/formato';
+import { CORREO_REGEX, MENSAJE_CORREO, CURP_REGEX, PASSWORD_REGEX, RFC_REGEX, cuentaAgrupada } from '../utils/formato';
 
 const PASOS = ['Datos personales', 'Verificación de Identidad Fiscal', 'Domicilio y datos laborales'];
 
@@ -73,7 +73,7 @@ function validarPaso(paso, f) {
   if (paso === 1) {
     if (!CURP_REGEX.test(f.curp)) e.curp = 'CURP con formato inválido (18 caracteres)';
     if (!RFC_REGEX.test(f.rfc)) e.rfc = 'RFC con formato inválido (12 o 13 caracteres)';
-    if (!CORREO_REGEX.test(f.correoElectronico)) e.correoElectronico = 'Correo inválido';
+    if (!CORREO_REGEX.test(f.correoElectronico.trim())) e.correoElectronico = MENSAJE_CORREO;
     if (!/^\d{10}$/.test(f.telefonoMovil)) e.telefonoMovil = 'Debe tener 10 dígitos';
     if (f.telefonoAlternativo && !/^\d{10}$/.test(f.telefonoAlternativo)) e.telefonoAlternativo = 'Debe tener 10 dígitos';
   }
@@ -231,7 +231,11 @@ export default function Registro() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Campo label="Nombre completo" disabled value={[f.nombre, f.segundoNombre, f.apellidoPaterno, f.apellidoMaterno].filter(Boolean).join(' ').toUpperCase()} />
-              <Campo label="Correo electrónico" type="email" value={f.correoElectronico} onChange={set('correoElectronico')} error={errores.correoElectronico} />
+              <Campo label="Correo electrónico" type="email" maxLength={100} value={f.correoElectronico}
+                onChange={set('correoElectronico', (v) => v.replace(/\s/g, ''))} error={errores.correoElectronico}
+                ayuda={f.correoElectronico && (CORREO_REGEX.test(f.correoElectronico)
+                  ? <span className="text-emerald-600 font-semibold">✓ Correo válido</span>
+                  : <span className="text-slate-400">Debe tener @ y terminar en .com o .mx</span>)} />
               <Campo label="Teléfono móvil" inputMode="numeric" value={f.telefonoMovil} onChange={set('telefonoMovil', digitos(10))} error={errores.telefonoMovil} placeholder="4181234567" />
               <Campo label="Teléfono alternativo (opcional)" inputMode="numeric" value={f.telefonoAlternativo} onChange={set('telefonoAlternativo', digitos(10))} error={errores.telefonoAlternativo} />
             </div>
