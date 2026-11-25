@@ -19,8 +19,11 @@ export default function Ticket({ pago, onVerificar, verificando, onCerrar }) {
     ['Servicio', pago.nombreProducto || `Servicio ${pago.idServicio}`],
     ['Referencia', <span className="font-mono">{pago.referencia}</span>],
     ['Cuenta de cargo', <span className="font-mono">{pago.numCuenta}</span>],
+    // Datos de la petición a GestoPago (sendTx) y de su respuesta.
+    pago.upc && ['UPC', <span className="font-mono">{pago.upc}</span>],
     pago.numeroAutorizacion && ['Autorización', <span className="font-mono font-bold">{pago.numeroAutorizacion}</span>],
     pago.codigoCanje && ['Código de canje', <span className="font-mono font-bold text-emerald-700">{pago.codigoCanje}</span>],
+    pago.fechaEnvio && ['Fecha de envío', formatoFecha(pago.fechaEnvio, true, true)],
     ['Fecha', formatoFecha(pago.fechaCreacion)],
     ['Estado', <Estado valor={pago.estado} />],
   ].filter(Boolean);

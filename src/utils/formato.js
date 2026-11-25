@@ -2,12 +2,12 @@ const moneda = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MX
 
 export const formatoMoneda = (v) => (v === null || v === undefined || v === '' ? '—' : moneda.format(Number(v)));
 
-export function formatoFecha(iso, conHora = true) {
+export function formatoFecha(iso, conHora = true, conSegundos = false) {
   if (!iso) return '—';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleString('es-MX', conHora
-    ? { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }
+    ? { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', ...(conSegundos && { second: '2-digit' }) }
     : { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
